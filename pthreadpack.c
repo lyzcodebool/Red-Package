@@ -4,30 +4,8 @@
 	> Mail: 
 	> Created Time: 2017年09月20日 04时23分59秒 PDT
  ************************************************************************/
-
-#include<stdio.h>
-#include<pthread.h>
-#include<stdlib.h>
-#include<unistd.h>
-#include<assert.h>
-
-#define MAXNUM 10
-#define _RAND(max, min) (rand()%((max)- (min)) + min)
-static void* _grab(void *args);
+#include "pthreadpack.h"
 static int count = 1;
-typedef struct event//线程实例
-{
-    pthread_attr_t attr;//线程属性
-    pthread_mutex_t mutex;//线程锁
-    pthread_cond_t cond;//条件变量
-}event_t;
-
-typedef struct item
-{
-    int number; //红包数目
-    int total; //红包总额
-}item_t;
-static item_t item = {0};
 
 int main()
 {
@@ -39,9 +17,6 @@ int main()
     pthread_t tid;//线程变量
 
     /****实例初始化****/
-    //assert(ret = pthread_mutex_init(&temp.mutex, NULL));//初始化锁
-    //assert(ret = pthread_cond_init(&temp.cond, NULL));//初始化条件变量
-    //assert(ret = pthread_attr_init(&temp.attr));//初始化线程属性
     pthread_mutex_init(&temp.mutex, NULL);//初始化锁
     pthread_cond_init(&temp.cond, NULL);//初始化条件变量
     pthread_attr_init(&temp.attr);//初始化线程属性
@@ -50,12 +25,13 @@ int main()
     for(int i = 0; i < MAXNUM; ++i)
     {
         pthread_create(&tid, &temp.attr,_grab, &temp);
+        sleep(0.01);
         count ++;
     }
     
     while(1)
     {
-        sleep(0.01);
+        sleep(0.01);//在输出线程tid以后显示下面的程序
         printf("请输入红包个数：\n");
         if(fscanf(stdin,"%d", &number) == EOF)break;
         printf("请输入红包总金额：\n");
@@ -79,9 +55,6 @@ int main()
     }
 
     //程序结束时销毁实例成员
-    //assert(ret = pthread_attr_destroy(&temp.attr));
-    //assert(ret = pthread_cond_destroy(&temp.cond));
-    //assert(ret = pthread_mutex_destroy(&temp.mutex));
     pthread_attr_destroy(&temp.attr);
     pthread_cond_destroy(&temp.cond);
     pthread_mutex_destroy(&temp.mutex);
@@ -97,11 +70,10 @@ static void* _grab(void *args)
         return NULL;
     }
     printf("线程#%d : %lu\n", count, (unsigned long)pthread_self());//使用lu防止线程tid超过int范围
-    while(1)
+    while(1) //实际每个子线程只循环一次，加while(1)为了红包数目计数正常。
     {
         pthread_mutex_lock(&ptid->mutex);//子线程上锁
         pthread_cond_wait(&ptid->cond, &ptid->mutex);//线程挂起等待
-
         if(item.number <= 0)
         {
             printf("Thread #%lu,the package is empty!\n", (unsigned long)pthread_self());
@@ -121,8 +93,8 @@ static void* _grab(void *args)
         item.number--;
 
         printf("Thread  %lu get %d.%02d, left[%d, %d.%02d]\n", (unsigned long)pthread_self(), money/100, money%100, item.number,item.total/100, item.total%100);
+
         pthread_mutex_unlock(&ptid->mutex);
     }
-        //printf("Thread #%lu Stop！\n", (unsigned long)pthread_self());
         return NULL;
 }
